@@ -11,8 +11,9 @@ import requests
 
 ENDPOINT = "https://api.smallest.ai/waves/v1/pulse/get_text"
 LANGUAGE = "en"
-MAX_RETRIES = 3
+MAX_RETRIES = 5
 RETRY_DELAY = 5  # seconds between retries on transient errors
+QPS_INTERVAL = 0.2  # seconds between requests to avoid rate limiting
 
 
 def transcribe(audio_path: str, api_key: str) -> str:
@@ -36,7 +37,6 @@ def transcribe(audio_path: str, api_key: str) -> str:
             )
             resp.raise_for_status()
             data = resp.json()
-            # Pulse returns the full transcript under "text" at the top level
             text = data.get("transcription") or data.get("text") or ""
             return text.strip()
         except requests.exceptions.HTTPError as e:
@@ -72,11 +72,10 @@ if __name__ == "__main__":
     with open(scp_path, "r", encoding="utf8") as scp, \
          open(out_path, "w", encoding="utf8") as out:
 
-        for n, line in enumerate(scp):
-            line = line.strip()
-            if not line:
-                continue
+        lines = [l.strip() for l in scp if l.strip()]
+        total = len(lines)
 
+        for n, line in enumerate(lines):
             parts = line.split("\t", 1)
             if len(parts) != 2:
                 sys.stderr.write(f"Skipping malformed line: {line}\n")
@@ -86,6 +85,10 @@ if __name__ == "__main__":
             sys.stderr.write(f"{n}\tid:{audio_id}\taudio:{audio_path}\n")
             sys.stderr.flush()
 
+            time.sleep(QPS_INTERVAL)
             text = transcribe(audio_path, api_key)
             out.write(f"{audio_id}\t{text}\n")
             out.flush()
+
+            sys.stderr.write(f"[PROGRESS] {n + 1}/{total}\n")
+            sys.stderr.flush()
