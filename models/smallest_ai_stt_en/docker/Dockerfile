@@ -1,14 +1,11 @@
-FROM ubuntu:20.04
+FROM --platform=linux/amd64 continuumio/miniconda3:23.10.0-1
 LABEL maintainer="harshitajain@smallest.ai"
 
-ENV DEBIAN_FRONTEND=noninteractive
+RUN conda install -y -c conda-forge python=3.8 pynini regex && \
+    pip install --no-cache-dir requests && \
+    conda clean -afy
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-        python3 \
-        python3-pip && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN pip3 install --no-cache-dir requests pynini regex
+RUN ln -sf /opt/conda/bin/python3 /usr/bin/python3
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
