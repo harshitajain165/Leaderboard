@@ -37,7 +37,7 @@ def transcribe(audio_path: str, api_key: str) -> str:
             resp.raise_for_status()
             data = resp.json()
             # Pulse returns the full transcript under "text" at the top level
-            text = data.get("text") or data.get("transcript") or ""
+            text = data.get("transcription") or data.get("text") or ""
             return text.strip()
         except requests.exceptions.HTTPError as e:
             # 429 rate-limit or 5xx server error — retry
